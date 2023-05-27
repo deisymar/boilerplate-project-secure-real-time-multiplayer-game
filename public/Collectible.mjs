@@ -1,8 +1,22 @@
 class Collectible {
-  constructor({x, y, value, id}) {
-
+  constructor({ x = 10, y = 10, w = 15, h = 15, value = 1, id }) {
+    this.x = x;
+    this.y = y;
+    this.w = w;
+    this.h = h;
+    this.value = value;
+    this.id = id;
   }
 
+  draw(context, imgObj) {
+    if (this.value === 1) {
+      context.drawImage(imgObj.bronzeCoin, this.x, this.y);
+    } else if (this.value === 2) {
+      context.drawImage(imgObj.silverCoin, this.x, this.y);
+    } else {
+      context.drawImage(imgObj.goldCoin, this.x, this.y);
+    }
+  }
 }
 
 /*
@@ -11,6 +25,7 @@ class Collectible {
 */
 try {
   module.exports = Collectible;
-} catch(e) {}
+} catch (e) {}
 
-export default Collectible;
+//export default Collectible;
+module.exports = Collectible;
