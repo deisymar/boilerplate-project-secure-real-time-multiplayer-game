@@ -1,4 +1,5 @@
 require("dotenv").config();
+
 const express = require("express");
 const bodyParser = require("body-parser");
 const expect = require("chai");
@@ -11,6 +12,8 @@ const fccTestingRoutes = require("./routes/fcctesting.js");
 const runner = require("./test-runner.js");
 
 const app = express();
+const server = require("http").createServer(app);
+const io = socket(server, { cors: { origin: "*" } });
 
 app.use(
   helmet({
@@ -49,7 +52,8 @@ app.use(function (req, res, next) {
 const portNum = process.env.PORT || 3000;
 
 // Set up server and tests
-const server = app.listen(portNum, () => {
+//const server = app.listen(portNum, () => {
+server.listen(portNum, () => {
   console.log(`Listening on port ${portNum}`);
   if (process.env.NODE_ENV === "test") {
     console.log("Running Tests...");
@@ -66,43 +70,68 @@ const server = app.listen(portNum, () => {
 
 // Socket.io setup to the same port
 //const io = socket(server);
-const Collectible = require("./public/Collectible.mjs");
-const {
-  dimensions,
-  generateStartPos,
-} = require("./public/gameConfiguration.mjs");
 
-let currPlayers = [];
-const destroyedCoins = [];
+//let currPlayers = [];
+//const destroyedCoins = [];
+const connections = [];
+let allPlayers = [];
+let bonus = {};
+let endgame = 0;
 
-const generateCoin = () => {
-  const rand = Math.random();
-  let coinValue;
-
-  if (rand < 0.6) {
-    coinValue = 1;
-  } else if (rand < 0.85) {
-    coinValue = 2;
-  } else {
-    coinValue = 3;
-  }
-
-  return new Collectible({
-    //x: generateStartPos(dimensions.playFieldMinX, dimensions.playFieldMaxX, 5),
-    //y: generateStartPos(dimensions.playFieldMinY, dimensions.playFieldMaxY, 5),
-    x: 25,
-    y: 25,
-    value: coinValue,
-    id: Date.now(),
+//io.sockets.on("connection", (socket) => {
+io.on("connection", (socket) => {
+  //console.log(`New connection ${socket.id}`);
+  connections.push(socket);
+  io.emit("connected", {
+    msg: `Connected ${socket.id}`,
+    connections: connections.length,
   });
-};
+  socket.on("init", (data) => {
+    data.localPlayer.socketId = socket.id;
+    if (
+      !allPlayers.includes(
+        allPlayers.find(
+          (player) => player.socketId === data.localPlayer.socketId
+        )
+      )
+    ) {
+      allPlayers.push(data.localPlayer);
+    }
+    io.emit("updateClientPlayers", { allPlayers, bonus });
+  });
 
-let coin = generateCoin();
+  socket.on("updateServerPlayers", (data) => {
+    //console.log(data);
+    // update goal from client
+    bonus = data.bonus;
+    // get index of player who triggered update
+    const player = allPlayers.findIndex(
+      (player) => player.id == data.localPlayer.id
+    );
+    // update player by index
+    allPlayers[player].x = data.localPlayer.x;
+    allPlayers[player].y = data.localPlayer.y;
+    allPlayers[player].score = data.localPlayer.score;
 
-/*io.sockets.on("connection", (socket) => {
-  console.log(`New connection ${socket.id}`);
+    if (allPlayers[player].score >= 3) {
+      endgame = allPlayers[player].score;
+      io.emit("endGameClient", { endgame });
+    }
 
-  // socket.emit("init", { id: socket.id, players: currPlayers, coin });
-});*/
+    io.emit("updateClientPlayers", { allPlayers, bonus });
+  });
 
-module.exports = app; // For testing
+  // remove player from list of all players by associated the socket id
+  socket.on("disconnect", () => {
+    connections.splice(connections.indexOf(socket), 1);
+    allPlayers = allPlayers.filter((player) => player.socketId !== socket.id);
+    io.emit("updateClientPlayers", { allPlayers, bonus });
+    socket.broadcast.emit("disconnected", {
+      msg: `${socket.id} disconnected`,
+      connections: connections.length,
+    });
+  });
+});
+
+//module.exports = app; // For testing
+module.exports = server;

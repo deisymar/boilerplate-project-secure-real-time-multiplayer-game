@@ -1,25 +1,37 @@
+import { avatar, dimensions } from "./gameConfiguration.mjs";
+
 class Collectible {
-  constructor({ x = 10, y = 10, w = 15, h = 15, value = 1, id }) {
+  constructor({ x = 10, y = 10, value = 1, id, spriteSrcIndex = 0 }) {
     this.x = x;
     this.y = y;
-    this.w = w;
-    this.h = h;
     this.value = value;
     this.id = id;
+    this.spriteSrcIndex = spriteSrcIndex;
   }
 
   draw(context, imgObj) {
-    if (this.value === 1) {
-      context.drawImage(imgObj.bronzeCoin, this.x, this.y);
-    } else if (this.value === 2) {
-      context.drawImage(imgObj.silverCoin, this.x, this.y);
-    } else {
-      context.drawImage(imgObj.goldCoin, this.x, this.y);
-    }
+    const x = this.x + dimensions.playFieldLeft;
+    const y = this.y + dimensions.playFieldTop;
+    const imgBonus = imgObj[this.spriteSrcIndex];
+    context.drawImage(
+      imgBonus,
+      x,
+      y,
+      avatar.collectibleSprite.width,
+      avatar.collectibleSprite.height
+    );
+  }
+  setState({ x, y, value = 1, id, spriteSrcIndex }) {
+    this.x = x;
+    this.y = y;
+    this.value = value;
+    this.id = id;
+    this.spriteSrcIndex = spriteSrcIndex;
   }
 }
 
 /*
+
   Note: Attempt to export this for use
   in server.js
 */
@@ -27,5 +39,5 @@ try {
   module.exports = Collectible;
 } catch (e) {}
 
-//export default Collectible;
-module.exports = Collectible;
+export default Collectible;
+//module.exports = Collectible;
