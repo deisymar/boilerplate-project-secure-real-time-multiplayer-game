@@ -76,8 +76,7 @@ server.listen(portNum, () => {
 const connections = [];
 let allPlayers = [];
 let bonus = {};
-let endgame = 0;
-
+let endGame = false;
 //io.sockets.on("connection", (socket) => {
 io.on("connection", (socket) => {
   //console.log(`New connection ${socket.id}`);
@@ -113,12 +112,12 @@ io.on("connection", (socket) => {
     allPlayers[player].y = data.localPlayer.y;
     allPlayers[player].score = data.localPlayer.score;
 
-    if (allPlayers[player].score >= 3) {
-      endgame = allPlayers[player].score;
-      io.emit("endGameClient", { endgame });
-    }
-
     io.emit("updateClientPlayers", { allPlayers, bonus });
+
+    if (allPlayers[player].score >= 3) {
+      endGame = true;
+      io.emit("endGameClient", "win");
+    }
   });
 
   // remove player from list of all players by associated the socket id
